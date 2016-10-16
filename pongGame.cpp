@@ -8,7 +8,7 @@
 #include "pongGame.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
+#include <stdlib.h>
 
 player players[NUMEROFPLAYERS];
 ligthpoint red;
@@ -47,7 +47,7 @@ pongGame::pongGame() {
 	reset();
 	resetPoints();
 	sound.playSound(STARTSOUND);
-	mode = HITSPEED;//LINEARSPEED;
+	mode = HITIT;//HITSPEED;//LINEARSPEED;
 
 	players[UP].color.b = 160;
 	players[UP].color.r = 20;
@@ -56,6 +56,10 @@ pongGame::pongGame() {
 	players[UP].baseColor.b = 16;
 	players[UP].baseColor.r = 2;
 	players[UP].baseColor.g = 2;
+
+	players[UP].hitPoint.r = 120;
+	players[UP].hitPoint.g = 120;
+	players[UP].hitPoint.b = 0;
 
 	players[UP].pointJingle = POINT1SOUND;
 
@@ -68,12 +72,16 @@ pongGame::pongGame() {
 	players[DOWN].baseColor.r = 2;
 	players[DOWN].baseColor.g = 16;
 
+	players[DOWN].hitPoint.r = 120;
+	players[DOWN].hitPoint.g = 120;
+	players[DOWN].hitPoint.b = 0;
+
 	players[DOWN].pointJingle = POINT2SOUND;
 
 	// init Buttons
 	EICRA |= ( 1 << ISC11) | ( 1 << ISC01); // falling edge interrupt
 	EIMSK |= ( 1 << INT0) | ( 1 << INT1) ;
-	PORTD |= ( 1 << PD2) | ( 1 << PD3); //activate pullups
+	//PORTD |= ( 1 << PD2) | ( 1 << PD3); //activate pullups
 
 	players[DOWN].buttonPressed = false;
 	players[DOWN].buttonReset = 0;
@@ -138,6 +146,13 @@ void pongGame::run()
 			//movingPoint.b = ~movingPoint.b;
 		}
 
+
+		if (this->mode == HITIT)
+		{
+			players[UP].hitPointIndex = this->hitTargetIndex;
+			players[DOWN].hitPointIndex = NUMBEROFGAMEAREALED - 1 - this->hitTargetIndex;
+		}
+
 		// show points
 		updatePointsOnLedStripe();
 
@@ -150,6 +165,15 @@ void pongGame::run()
 		for (int i = 0; i < NUMBEROFBASELEDS; i++)
 		{
 			this->leds.setLightPoint(NUMBEROFGAMEAREALED - 1 - i, players[DOWN].color);
+		}
+
+		if (this->mode == HITIT)
+		{
+			players[UP].hitPointIndex = this->hitTargetIndex;
+			players[DOWN].hitPointIndex = NUMBEROFGAMEAREALED - 1 - this->hitTargetIndex;
+
+			this->leds.setLightPoint(players[UP].hitPointIndex, players[UP].hitPoint);
+			this->leds.setLightPoint(players[DOWN].hitPointIndex, players[DOWN].hitPoint);
 		}
 
 		// wait till start
@@ -169,13 +193,21 @@ void pongGame::run()
 			leds.setLightPoint(NUMBEROFBASELEDS - 1, players[UP].baseColor);
 			leds.setLightPoint(NUMBEROFGAMEAREALED - NUMBEROFBASELEDS, players[DOWN].baseColor);
 
+			if (this->mode == HITIT)
+			{
+
+				this->leds.setLightPoint(players[UP].hitPointIndex, players[UP].hitPoint);
+				this->leds.setLightPoint(players[DOWN].hitPointIndex, players[DOWN].hitPoint);
+			}
+
 			// show points
 			updatePointsOnLedStripe();
 
 			// move point around
 			if ( this->dir == UP)
 			{
-				// UP TURN
+
+				// UP TURN (led runs up to green (Player DOWN)
 				if (checkButton(&players[UP]))
 				{
 					// player pressed button but it was not his turn, idiot!
@@ -187,7 +219,7 @@ void pongGame::run()
 					this->actualPoint++;
 					if (actualPoint >= NUMBEROFGAMEAREALED)
 					{
-						pointFor(UP);
+						pointFor(UP); // LED out of field, UP(blue gets a point)
 						actualPoint = NUMBEROFGAMEAREALED - 1;
 					}
 				} else {
@@ -195,31 +227,40 @@ void pongGame::run()
 					if (( actualPoint >= (NUMBEROFGAMEAREALED - NUMBEROFBASELEDS)))
 					{
 						uint8_t hitPosition = NUMBEROFGAMEAREALED - actualPoint;
-						//valid hit
-						this->dir = DOWN;
-						sound.playSound(HITSOUND);
-						increaseSpeed(hitPosition, DOWN);
+						// did he hit the point?
+						if ((this->mode == HITIT) && (this->actualPoint == players[DOWN].hitPointIndex))
+						{
+                           pointFor(DOWN); // he hit the point and gets the point
+						} else {
+							//valid hit
+							this->dir = DOWN; //lets move down to blue
+							sound.playSound(HITSOUND);
+							increaseSpeed(hitPosition, DOWN);
+						}
+
 
 					} else {
+						// point pressed out side game area, point for blue
 						pointFor(UP);
 					}
 				}
 
 			} else {
-				// DOWN TURN (green)
+				// DOWN TURN (blue (UP) has to click)
 
 				if (checkButton(&players[DOWN]))
 				{
 					// player pressed button but it was not his turn, idiot!
 					pointFor(UP);
 				}
+
 				if (checkButton(&players[UP]) == false)
 				{
 
 					this->actualPoint--;
 					if (actualPoint < 0)
 					{
-						pointFor(DOWN);
+						pointFor(DOWN); // LED OUT of the gaming area
 						actualPoint = 0;
 					}
 				} else {
@@ -228,10 +269,14 @@ void pongGame::run()
 					{
 						uint8_t hitPosition = actualPoint;
 						//valid hit
-						this->dir = UP;
-                        increaseSpeed(hitPosition,UP);
-						sound.playSound(HITSOUND);
-
+						if ((this->mode == HITIT) && (this->actualPoint == players[UP].hitPointIndex))
+						{
+							pointFor(UP); // point for blue
+						} else {
+							this->dir = UP;
+							increaseSpeed(hitPosition,UP);
+							sound.playSound(HITSOUND);
+						}
 					} else {
 						pointFor(DOWN);
 					}
@@ -350,6 +395,11 @@ void pongGame::reset()
 	players[DOWN].baseColor.r = 2;
 	players[DOWN].baseColor.g = 16;
 
+	if (this->mode == HITIT)
+	{
+      this->hitTargetIndex = rand() % NUMBEROFBASELEDS;
+	}
+
 }
 
 void pongGame::resetPoints()
@@ -408,10 +458,17 @@ bool pongGame::checkButton(player* pl)
 
 void pongGame::pointFor(enum direction winner)
 {
-	players[winner].points--;
+	enum direction looser;
+    if (winner == UP)
+    {
+    	looser = DOWN;
+    } else {
+    	looser = UP;
+    }
+	players[looser].points--;
 	lastWinner = winner;
 
-	if (players[winner].points == 0)
+	if (players[looser].points == 0)
 	{
 		//match over
 		this->status = MATCH_OVER;
@@ -423,7 +480,7 @@ void pongGame::pointFor(enum direction winner)
 	//update
     updatePointsOnLedStripe();
 
-	movingPoint = players[winner].color;
+	movingPoint = players[looser].color;
 
 	sound.playSound(players[winner].pointJingle);
 }

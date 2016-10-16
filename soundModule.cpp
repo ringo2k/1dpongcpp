@@ -91,7 +91,7 @@ soundModule::soundModule() {
 	jingles[HITSOUND].length = 2;
 
 	jingles[MATCH_OVERSOUND].tones = matchover_jingle;
-	jingles[MATCH_OVERSOUND].length = 9;// matchover_jingle;
+	jingles[MATCH_OVERSOUND].length = 7;// matchover_jingle;
 
 	toneIndex = 0;
 

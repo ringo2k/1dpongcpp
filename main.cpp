@@ -26,7 +26,7 @@ int main()
 	PORTD |= ( 1 << PD2) | ( 1 << PD3);
 
 
-
+    game.prepare();
 	while(1)
 	{
 

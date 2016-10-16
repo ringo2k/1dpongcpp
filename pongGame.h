@@ -25,6 +25,8 @@ typedef struct s_player
 	unsigned char points;
 	ligthpoint color;
 	ligthpoint baseColor;
+	ligthpoint hitPoint;
+	unsigned int hitPointIndex;
 	bool buttonPressed;
 	unsigned char buttonReset;
 	enum SOUNDNAMES pointJingle;
@@ -34,7 +36,8 @@ typedef struct s_player
 enum GAMEMODES
 {
 	LINEARSPEED,
-	HITSPEED
+	HITSPEED,
+	HITIT
 };
 
 enum direction
@@ -56,8 +59,8 @@ class pongGame {
 private:
 	softwareTimer blinkTimer, speedTimer;
 	ledStripe leds;
-	int actualPoint;
-	ligthpoint movingPoint;
+	int actualPoint, hitTargetIndex;
+	ligthpoint movingPoint, hitTargtPoint;
 	gameStatus status;
 	enum direction dir, lastWinner;
 	enum GAMEMODES mode;
