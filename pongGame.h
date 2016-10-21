@@ -28,7 +28,7 @@ typedef struct s_player
 	ligthpoint hitPoint;
 	unsigned int hitPointIndex;
 	bool buttonPressed;
-	unsigned char buttonReset;
+	int buttonReset;
 	enum SOUNDNAMES pointJingle;
 
 } player;

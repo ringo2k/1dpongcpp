@@ -15,32 +15,31 @@ ligthpoint red;
 
 ISR(INT0_vect)
 {
-	unsigned int count = 0;
-    for (count = 0; count < 1e3; count++)
-    {
-    	if (PIND &= ( 1 << PD2))
-    	{
-    		return; //debounce
-    	}
-    }
-	players[UP].buttonPressed = true;
-	players[UP].buttonReset = 0;
-	EIMSK &= ~(1 << INT0);
+	unsigned int i = 0;
+	//debounce
+	while (!(PIND & ( 1 << PD2)) && (i < 1000)) i++;
+
+	if (i == 1000)
+	{
+		players[UP].buttonPressed = true;
+		players[UP].buttonReset = 0;
+		EIMSK &= ~(1 << INT0);
+	}
+
 }
 
 ISR(INT1_vect)
 {
-	unsigned int count = 0;
-    for (count = 0; count < 1e3; count++)
-    {
-    	if (PIND &= ( 1 << PD3))
-    	{
-    		return; //debounce
-    	}
-    }
-	players[DOWN].buttonPressed = true;
-	players[DOWN].buttonReset = 0;
-	EIMSK &= ~(1 << INT1);
+	unsigned int i = 0;
+	//debounce
+	while (!(PIND & ( 1 << PD3)) && (i < 1000)) i++;
+
+	if (i == 1000)
+	{
+		players[DOWN].buttonPressed = true;
+		players[DOWN].buttonReset = 0;
+		EIMSK &= ~(1 << INT1);
+	}
 }
 
 pongGame::pongGame() {
@@ -79,9 +78,9 @@ pongGame::pongGame() {
 	players[DOWN].pointJingle = POINT2SOUND;
 
 	// init Buttons
-	EICRA |= ( 1 << ISC11) | ( 1 << ISC01); // falling edge interrupt
+	//EICRA |= ( 1 << ISC11) | ( 1 << ISC01); // falling edge interrupt
 	EIMSK |= ( 1 << INT0) | ( 1 << INT1) ;
-	//PORTD |= ( 1 << PD2) | ( 1 << PD3); //activate pullups
+	PORTD |= ( 1 << PD2) | ( 1 << PD3); //activate pullups
 
 	players[DOWN].buttonPressed = false;
 	players[DOWN].buttonReset = 0;
@@ -335,7 +334,6 @@ void pongGame::run()
 	}
 
 
-	// update
 	leds.setLightPoint(actualPoint, movingPoint);
 	this->leds.run();
 	this->sound.run();
