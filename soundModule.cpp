@@ -56,20 +56,40 @@ tone hit_jingle[]
 
 tone matchover_jingle[]
 				 {
-						 {140,60},
-						 {160,30},
-						 {170,200},
-						 {0,10},
-						 {120,350},
-						 {0,10},
-						 {140,60},
-						 {160,30},
-						 {170,200}
+						 {255,50},
+						 {100,50},
+						 {255,50},
+						 {0,200},
+						 {200,50},
+						 {220,200},
+						 {240,50},
+						 {180,200},
+						 {0,200},
+						 {180,200}
 				 };
+tone suddendeath_jingle[]
+				 {
+						 {250,50},
+						 {0,100},
+						 {250,50},
+						 {0,100},
+						 {120,25},
+						 {0,50},
+						 {120,25},
+						 {0,100},
+						 {250,50},
+						 {0,100},
+						 {250,50},
+						 {0,50},
+						 {120,50},
+
+				 };
+
 
 soundModule::soundModule() {
 
-	DDRD |= ( 1 << PD5);
+	DDRD |= ( 1 << PD5) | ( 1 << PD4);
+	PORTD &= ~(1 << PD4); // clear IDS1820 trigger
 	TCCR0A |= ( 1 << COM0B0) | ( 1 << WGM01);
 	TCCR0B |= ( 1 << CS01) | ( 1 << CS00);
 	OCR0B = 1;
@@ -90,8 +110,12 @@ soundModule::soundModule() {
 	jingles[HITSOUND].tones = hit_jingle;
 	jingles[HITSOUND].length = 2;
 
+	jingles[SUDDEN_DEATH_SOUND].tones = suddendeath_jingle;
+	jingles[SUDDEN_DEATH_SOUND].length = 13;
+
+
 	jingles[MATCH_OVERSOUND].tones = matchover_jingle;
-	jingles[MATCH_OVERSOUND].length = 7;// matchover_jingle;
+	jingles[MATCH_OVERSOUND].length = 9;// matchover_jingle;
 
 	toneIndex = 0;
 
@@ -126,6 +150,13 @@ void soundModule::run()
 	{
 		if (toneIndex >= jingles[this->activeSound].length)
 		{
+			if (this->activeSound == MATCH_OVERSOUND)
+			{
+				// we give also a trigger to the IDS1820 board
+				PORTD |= ( 1 << PD4);
+				_delay_ms(1);
+				PORTD &= ~(1 << PD4);
+			}
 			// finished song
 			this->activeSound = NOSOUND;
 			noSound();

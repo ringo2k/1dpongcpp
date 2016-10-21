@@ -473,6 +473,12 @@ void pongGame::pointFor(enum direction winner)
 		sound.playSound(MATCH_OVERSOUND);
 	} else {
 		this->status = POINT;
+
+		if ((players[UP].points == 1) && ( players[DOWN].points == 1))
+		{
+			// SUDDEN DEATH!
+			sound.playSound(SUDDEN_DEATH_SOUND);
+		}
 	}
 
 	//update
