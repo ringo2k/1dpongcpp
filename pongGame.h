@@ -67,6 +67,7 @@ private:
 	int speed;
 	void reset();
 	void resetPoints();
+	enum GAMEMODES getGameMode();
 public:
 	soundModule sound;
 	pongGame();

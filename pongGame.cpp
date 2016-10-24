@@ -9,6 +9,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdlib.h>
+#include <avr/wdt.h>
 
 player players[NUMEROFPLAYERS];
 ligthpoint red;
@@ -46,7 +47,6 @@ pongGame::pongGame() {
 	reset();
 	resetPoints();
 	sound.playSound(STARTSOUND);
-	mode = HITIT;//HITSPEED;//LINEARSPEED;
 
 	players[UP].color.b = 160;
 	players[UP].color.r = 20;
@@ -80,7 +80,7 @@ pongGame::pongGame() {
 	// init Buttons
 	//EICRA |= ( 1 << ISC11) | ( 1 << ISC01); // falling edge interrupt
 	EIMSK |= ( 1 << INT0) | ( 1 << INT1) ;
-	PORTD |= ( 1 << PD2) | ( 1 << PD3); //activate pullups
+	PORTD |= ( 1 << PD2) | ( 1 << PD3) | ( 1 << PD6) | ( 1 << PD7); //activate pullups
 
 	players[DOWN].buttonPressed = false;
 	players[DOWN].buttonReset = 0;
@@ -92,11 +92,31 @@ pongGame::pongGame() {
 	red.g = 0;
 	red.r = 250;
 
+	mode = getGameMode();//HITSPEED;//LINEARSPEED;
+
+
 
 }
 
 pongGame::~pongGame() {
 	// TODO Auto-generated destructor stub
+}
+
+enum GAMEMODES pongGame::getGameMode() {
+  char in = PIND & 0xc0;
+
+  switch (in)
+  {
+  case 0x80:
+	  return HITIT;
+	  break;
+  case 0x40:
+	  return LINEARSPEED;
+	  break;
+  default:
+      return HITSPEED;
+	  break;
+  }
 }
 
 void pongGame::updatePointsOnLedStripe()
@@ -132,6 +152,15 @@ void pongGame::updatePointsOnLedStripe()
 
 void pongGame::run()
 {
+
+	// change game mode?
+	if (getGameMode() != this->mode)
+	{
+		WDTCSR |= (1<<WDCE) | (1<<WDE);
+
+	} else {
+		wdt_reset();
+	}
 
 	switch (status)
 	{
@@ -333,8 +362,7 @@ void pongGame::run()
 		break;
 	}
 
-
-	leds.setLightPoint(actualPoint, movingPoint);
+    leds.setLightPoint(actualPoint, movingPoint);
 	this->leds.run();
 	this->sound.run();
 
